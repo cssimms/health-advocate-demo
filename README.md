@@ -16,6 +16,12 @@ Run the development server:
 npm run dev
 ```
 
+Copy your local version of .env:
+
+```bash
+cp .env.sample .env
+```
+
 ## Database set up
 
 The app is configured to return a default list of advocates. This will allow you to get the app up and running without needing to configure a database. If you’d like to configure a database, you’re encouraged to do so. You can uncomment the url in `.env` and the line in `src/app/api/advocates/route.ts` to test retrieving advocates from the database.
