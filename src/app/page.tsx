@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Advocate } from "./types";
 
 export default function Home() {
-  const [advocates, setAdvocates] = useState([]);
-  const [filteredAdvocates, setFilteredAdvocates] = useState([]);
+  const [advocates, setAdvocates] = useState<Advocate[]>([]);
+  const [filteredAdvocates, setFilteredAdvocates] = useState<Advocate[]>([]);
 
   useEffect(() => {
     console.log("fetching advocates...");
@@ -19,6 +20,7 @@ export default function Home() {
   const onChange = (e) => {
     const searchTerm = e.target.value;
 
+    // TODO - this is not the way, and we should prbably deounce as well
     document.getElementById("search-term").innerHTML = searchTerm;
 
     console.log("filtering advocates...");
@@ -58,34 +60,46 @@ export default function Home() {
       <br />
       <table>
         <thead>
-          <th>First Name</th>
-          <th>Last Name</th>
-          <th>City</th>
-          <th>Degree</th>
-          <th>Specialties</th>
-          <th>Years of Experience</th>
-          <th>Phone Number</th>
+          <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>City</th>
+            <th>Degree</th>
+            <th>Specialties</th>
+            <th>Years of Experience</th>
+            <th>Phone Number</th>
+          </tr>
         </thead>
         <tbody>
           {filteredAdvocates.map((advocate) => {
             return (
-              <tr>
-                <td>{advocate.firstName}</td>
-                <td>{advocate.lastName}</td>
-                <td>{advocate.city}</td>
-                <td>{advocate.degree}</td>
-                <td>
-                  {advocate.specialties.map((s) => (
-                    <div>{s}</div>
-                  ))}
-                </td>
-                <td>{advocate.yearsOfExperience}</td>
-                <td>{advocate.phoneNumber}</td>
-              </tr>
+              <AdvocateRow key={advocate.id} advocate={advocate}></AdvocateRow>
             );
           })}
         </tbody>
       </table>
     </main>
+  );
+}
+
+interface AdvocateRowProps {
+  advocate: Advocate;
+}
+
+function AdvocateRow({ advocate }: AdvocateRowProps) {
+  return (
+    <tr key={advocate.id}>
+      <td>{advocate.firstName}</td>
+      <td>{advocate.lastName}</td>
+      <td>{advocate.city}</td>
+      <td>{advocate.degree}</td>
+      <td>
+        {advocate.specialties.map((s, index) => (
+          <div key={`${advocate.id}${index}`}>{s}</div>
+        ))}
+      </td>
+      <td>{advocate.yearsOfExperience}</td>
+      <td>{advocate.phoneNumber}</td>
+    </tr>
   );
 }
