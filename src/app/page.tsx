@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Advocate } from "./types";
+import AdvocateResults from "./components/advocate-results";
+import { debounce } from "./utils/debounce";
 
 export default function Home() {
   const [advocates, setAdvocates] = useState<Advocate[]>([]);
@@ -18,23 +20,59 @@ export default function Home() {
     });
   }, []);
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const searchTerm = e.target.value;
-
-    // TODO - add back searching by years of experience?
-    const filteredAdvocates = advocates.filter((advocate) => {
-      return (
-        advocate.firstName.includes(searchTerm) ||
-        advocate.lastName.includes(searchTerm) ||
-        advocate.city.includes(searchTerm) ||
-        advocate.degree.includes(searchTerm) ||
-        advocate.specialties.includes(searchTerm)
-      );
+  // Call the search API
+  const fetchSearchResults = async (query: string) => {
+    const response = await fetch("/api/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ searchQuery: query }),
     });
 
-    setCurrentSearchTerm(searchTerm);
-    setFilteredAdvocates(filteredAdvocates);
+    const jsonResponse = await response.json();
+    return jsonResponse.data;
   };
+
+  // const debouncedSearch = useCallback(() => {
+  //   const debounced = debounce(async (query: string) => {
+  //     const filteredAdvocates = await fetchSearchResults(query);
+  //     setFilteredAdvocates(filteredAdvocates);
+  //   }, 300);
+
+  //   return debounced;
+  // }, []);
+
+  // Wrap the call to debounce in useCallback so that we only create the debounced function once -
+  // otherwise we lose the closure of our stored "timeout" to clear timeouts on subsequent calls.
+  // Not sure about the warning, when wrapped in an inline function we lose the debounced function somehow?
+  const debouncedSearch = useCallback(
+    debounce(async (query: string) => {
+      const filteredAdvocates = await fetchSearchResults(query);
+      setFilteredAdvocates(filteredAdvocates);
+    }, 300),
+    []
+  );
+
+  const onChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const searchTerm = e.target.value;
+
+      // TODO - add back searching by years of experience?
+      // const filteredAdvocates = advocates.filter((advocate) => {
+      //   return (
+      //     advocate.firstName.includes(searchTerm) ||
+      //     advocate.lastName.includes(searchTerm) ||
+      //     advocate.city.includes(searchTerm) ||
+      //     advocate.degree.includes(searchTerm) ||
+      //     advocate.specialties.includes(searchTerm)
+      //   );
+      // });
+      setCurrentSearchTerm(searchTerm);
+      await debouncedSearch(searchTerm);
+    },
+    [debouncedSearch]
+  );
 
   const resetSearch = () => {
     console.log(advocates);
@@ -66,106 +104,5 @@ export default function Home() {
       <br />
       <AdvocateResults advocates={filteredAdvocates} />
     </main>
-  );
-}
-
-interface AdvocateRowProps {
-  advocate: Advocate;
-}
-
-interface AdvocateResultsProps {
-  advocates: Advocate[];
-}
-
-function AdvocateResults({ advocates }: AdvocateResultsProps) {
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {advocates.map((advocate) => (
-        <AdvocateRow key={advocate.id} advocate={advocate}></AdvocateRow>
-      ))}
-    </div>
-  );
-}
-
-function AdvocateRow({ advocate }: AdvocateRowProps) {
-  // Generic card styles copied from tailwind documentation
-  // https://tailwindcss.com/docs/styling-with-utility-classes
-  // Could use a lot of work! But wanted to just get started with something in place of the html table
-  return (
-    <div className="flex gap-2 p-8 sm:flex-row sm:items-center sm:gap-6 sm:py-4 ...">
-      <AdvocateIcon />
-      <div className="space-y-2 text-center sm:text-left">
-        <AdvocateName advocate={advocate} />
-        <div className="space-y-0.5">
-          <p className="font-medium text-gray-500">{advocate.city}</p>
-          <span className="font-medium text-gray-500">
-            In the industry for {advocate.yearsOfExperience} years
-          </span>
-          <AdvocatePhoneNumber advocate={advocate} />
-        </div>
-        <AdvocateSpecialties advocate={advocate} />
-        <button className="border-purple-200 text-purple-600 hover:border-transparent hover:bg-purple-600 hover:text-white active:bg-purple-700 ...">
-          Message (Or other call to action)
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AdvocateIcon() {
-  // TODO - thought a placeholder svg would be fun, but I was getting strange sizing on the page.
-  // Left as a stretch goal, if we wanted to try and render something here.
-  // <svg className="w-6 h-6 text-gray-500"
-  //   fill="none"
-  //   stroke="currentColor"
-  //   viewBox="0 0 24 24"
-  //   xmlns="http://www.w3.org/2000/svg"
-  // >
-  //   <path
-  //     stroke-linecap="round"
-  //     stroke-linejoin="round"
-  //     stroke-width="2"
-  //     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-  //   ></path>
-  // </svg>
-  return null;
-}
-
-function AdvocateName({ advocate }: { advocate: Advocate }) {
-  return (
-    <>
-      <p className="text-lg font-semibold text-black">
-        {advocate.firstName} {advocate.lastName},
-        <span className="font-medium text-gray-500"> {advocate.degree}</span>
-      </p>
-    </>
-  );
-}
-
-function AdvocatePhoneNumber({ advocate }: { advocate: Advocate }) {
-  return <p className="font-medium text-gray-500">{advocate.phoneNumber}</p>;
-}
-
-function AdvocateSpecialties({ advocate }: { advocate: Advocate }) {
-  // TODO - different effort to re-work specialities
-  // return (
-  //   <div>
-  //     <p className="font-medium text-gray-700">Specialties:</p>
-  //     <div className="flex">
-  //       {advocate.specialties.map((specialty, index) => (
-  //         <span
-  //           key={index}
-  //           className="my-2 inline-block rounded-full bg-neutral-200 px-6 pb-2 pt-2.5 text-xs font-small leading-normal  shadow-md transition duration-150 ease-in-out hover:bg-neutral-300 hover:shadow-lg focus:bg-neutral-300 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-neutral-400 active:shadow-lg dark:bg-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-500 dark:focus:bg-neutral-500 dark:active:bg-neutral-400"
-  //         >
-  //           {specialty}
-  //         </span>
-  //       ))}
-  //     </div>
-  //   </div>
-
-  return (
-    <span className="text-xs text-gray-700">
-      Specialties: {advocate.specialties.join(", ")}
-    </span>
   );
 }
