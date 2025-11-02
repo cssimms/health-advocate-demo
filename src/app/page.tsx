@@ -6,6 +6,7 @@ import { Advocate } from "./types";
 export default function Home() {
   const [advocates, setAdvocates] = useState<Advocate[]>([]);
   const [filteredAdvocates, setFilteredAdvocates] = useState<Advocate[]>([]);
+  const [currentSearchTerm, setCurrentSearchTerm] = useState<string>("");
 
   useEffect(() => {
     console.log("fetching advocates...");
@@ -17,30 +18,28 @@ export default function Home() {
     });
   }, []);
 
-  const onChange = (e) => {
+  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const searchTerm = e.target.value;
 
-    // TODO - this is not the way, and we should prbably deounce as well
-    document.getElementById("search-term").innerHTML = searchTerm;
-
-    console.log("filtering advocates...");
+    // TODO - add back searching by years of experience?
     const filteredAdvocates = advocates.filter((advocate) => {
       return (
         advocate.firstName.includes(searchTerm) ||
         advocate.lastName.includes(searchTerm) ||
         advocate.city.includes(searchTerm) ||
         advocate.degree.includes(searchTerm) ||
-        advocate.specialties.includes(searchTerm) ||
-        advocate.yearsOfExperience.includes(searchTerm)
+        advocate.specialties.includes(searchTerm)
       );
     });
 
+    setCurrentSearchTerm(searchTerm);
     setFilteredAdvocates(filteredAdvocates);
   };
 
   const resetSearch = () => {
     console.log(advocates);
     setFilteredAdvocates(advocates);
+    setCurrentSearchTerm("");
   };
 
   return (
@@ -54,6 +53,7 @@ export default function Home() {
           style={{ border: "1px solid black" }}
           onChange={onChange}
           placeholder="Type here to search ... "
+          value={currentSearchTerm}
         />
         <button
           className="ml-2 p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none"
